@@ -59,21 +59,26 @@ class DatastoreRefreshPlugin(plugins.SingletonPlugin):
 
     # IXLoader
     def after_upload(self, context, resource_dict, dataset_dict):
+        log.info("Xloader: after_upload.")
         _purge_section_cache(context, resource_dict, dataset_dict)
 
 
 def _purge_section_cache(context, resource_dict, dataset_dict):
     cache_ban_url = tk.config.get("ckanext.datastore_refresh.cache_ban_url")
     if not cache_ban_url:
+        log.error("Not cache_ban_url is being provided. Skip.")
         return
     try:
+        log.info("Update datastore refresh data.")
         rdd = tk.get_action("datastore_refresh_dataset_refresh_update")(
             context, {"package_id": dataset_dict.get("id")}
         )
     except Exception as ex:
+        log.error('An Error appeard while updating datastore refresh data.')
         log.error(ex)
         return
 
+    log.info("Start cache purging process.")
     cache_user = tk.config.get("ckanext.datastore_refresh.cache_user")
     cache_pass = tk.config.get("ckanext.datastore_refresh.cache_pass")
     cache_account_id = tk.config.get(
