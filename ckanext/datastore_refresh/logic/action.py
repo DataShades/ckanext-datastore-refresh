@@ -67,6 +67,7 @@ def dataset_refresh_update(context, data_dict):
     """
     tk.check_access("datastore_refresh_dataset_refresh_update", context)
 
+    log.info("Check Datastore Refresh for the Dataset")
     rdd_obj = DatasetRefresh.get_by_package_id(data_dict["package_id"])
     if not rdd_obj:
         log.error(
@@ -74,9 +75,11 @@ def dataset_refresh_update(context, data_dict):
         )
         raise tk.ObjectNotFound()
 
-    log.debug("Updating refresh_dataset_datastore: %s", rdd_obj)
+    log.info("Updating refresh_dataset_datastore: %s", rdd_obj)
     rdd_obj.touch()
     rdd_obj.save()
+
+    log.info("Updated refresh_dataset_datastore.")
 
     return rdd_obj.dictize(context)
 
