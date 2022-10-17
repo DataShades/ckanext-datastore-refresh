@@ -4,7 +4,7 @@ import logging
 
 import ckan.plugins.toolkit as tk
 import click
-
+import datetime
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +61,28 @@ def dataset(frequency):
 
     click.echo(f"Finished refresh_dataset_datastore for frequency {frequency}")
 
+def _validate_bad_datetime(context,data_dict):
+        ''' Validate the datetime wih non ISO format
+        '''
+        existing_task = tk.get_action('task_status_show')(context, {
+            'entity_id': data_dict['resource_id'],
+            'task_type': 'xloader',
+            'key': 'xloader'
+        })
+        if existing_task['last_updated']:
+            try:
+                datetime.datetime.strptime(
+                    existing_task['last_updated'], '%Y-%m-%dT%H:%M:%S.%f')
+            except ValueError:
+                existing_task['last_updated'] = existing_task['last_updated'] + ".000"
+                model = context['model']
+                existing_task['state'] = 'error'
+                tk.get_action('task_status_update')(
+                {'session': model.meta.create_local_session(), 'ignore_auth': True},
+                existing_task
+            )
+                return False
+        return True
 
 def _submit_resource(dataset, resource, context):
     """resource: resource dictionary"""
@@ -92,7 +114,10 @@ def _submit_resource(dataset, resource, context):
         "ignore_hash": False,
     }
 
-    success = tk.get_action("xloader_submit")(context, data_dict)
+    if _validate_bad_datetime(context,data_dict):
+        success = tk.get_action("xloader_submit")(context, data_dict)
+    else:
+        success = False
     if success:
         click.secho("...ok", fg="green")
     else:
